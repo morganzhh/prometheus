@@ -266,7 +266,7 @@ func main() {
 
 	logger := promlog.New(&cfg.promlogConfig)
 
-	cfg.web.ExternalURL, err = computeExternalURL(cfg.prometheusURL, cfg.web.ListenAddress)
+	cfg.web.ExternalURL, err = computeExternalURL(cfg.prometheusURL, cfg.web.ListenAddress, cfg.web.RoutePrefix)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, errors.Wrapf(err, "parse external URL %q", cfg.prometheusURL))
 		os.Exit(2)
@@ -341,6 +341,7 @@ func main() {
 	klog.SetLogger(log.With(logger, "component", "k8s_client_runtime"))
 
 	level.Info(logger).Log("msg", "Starting Prometheus", "version", version.Info())
+	level.Info(logger).Log("Morgan", "This is modified version of prometheus")
 	level.Info(logger).Log("build_context", version.BuildContext())
 	level.Info(logger).Log("host_details", prom_runtime.Uname())
 	level.Info(logger).Log("fd_limits", prom_runtime.FdLimits())
@@ -846,7 +847,7 @@ func compileCORSRegexString(s string) (*regexp.Regexp, error) {
 
 // computeExternalURL computes a sanitized external URL from a raw input. It infers unset
 // URL parts from the OS and the given listen address.
-func computeExternalURL(u, listenAddr string) (*url.URL, error) {
+func computeExternalURL(u, listenAddr string, prefix string) (*url.URL, error) {
 	if u == "" {
 		hostname, err := os.Hostname()
 		if err != nil {
@@ -856,7 +857,10 @@ func computeExternalURL(u, listenAddr string) (*url.URL, error) {
 		if err != nil {
 			return nil, err
 		}
-		u = fmt.Sprintf("http://%s:%s/", hostname, port)
+		if strings.HasPrefix(prefix, "/") {
+			prefix = strings.TrimPrefix(prefix, "/")
+		}
+		u = fmt.Sprintf("http://%s:%s/%s", hostname, port, prefix)
 	}
 
 	if startsOrEndsWithQuote(u) {

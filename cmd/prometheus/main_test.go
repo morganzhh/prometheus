@@ -95,7 +95,7 @@ func TestComputeExternalURL(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		_, err := computeExternalURL(test.input, "0.0.0.0:9090")
+		_, err := computeExternalURL(test.input, "0.0.0.0:9090", "")
 		if test.valid {
 			testutil.Ok(t, err)
 		} else {
